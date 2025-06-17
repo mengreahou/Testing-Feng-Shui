@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>កម្មវិធីវិភាគហុងស៊ុយវិទ្យាសាស្រ្ត AI</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome CDN for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"></link>
+    <!-- Google Fonts - Kantumruy Pro -->
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- React CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel CDN for JSX transpilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Marked.js CDN for Markdown parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.0/marked.min.js"></script>
+    <!-- DOMPurify CDN for sanitizing HTML -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.3.6/purify.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Kantumruy Pro', sans-serif;
+        }
+        /* Custom styles for the prose class to make Markdown output readable */
+        .prose h1 { font-size: 2.25rem; font-weight: bold; margin-top: 1.5em; margin-bottom: 0.75em; }
+        .prose h2 { font-size: 1.875rem; font-weight: bold; margin-top: 1.25em; margin-bottom: 0.6em; }
+        .prose h3 { font-size: 1.5rem; font-weight: bold; margin-top: 1em; margin-bottom: 0.5em; }
+        .prose strong { font-weight: bold; }
+        .prose ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; }
+        .prose ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 1em; }
+        .prose li { margin-bottom: 0.5em; }
+        .prose p { margin-bottom: 1em; }
+        .prose hr { border-top: 1px solid #e2e8f0; margin: 2em 0; }
+        /* Ensure responsive image handling within prose */
+        .prose img { max-width: 100%; height: auto; border-radius: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Change script type to text/babel for JSX transpilation -->
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const ReactDOM = ReactDOM; // Marked and DOMPurify are global from CDNs
+
+        // Main App component
+        const App = () => {
+            // State variables for managing the app's data and UI
+            const [selectedFiles, setSelectedFiles] = useState([]);
+            const [imageUrls, setImageUrls] = useState([]);
+            const [imageInfo, setImageInfo] = useState(''); // Feng Shui image analysis result
+            const [isLoading, setIsLoading] = useState(false); // For image analysis
+            const [error, setError] = useState(''); // For image analysis error
+
+            // State variables for birth date, time, and house direction
+            const [birthDate, setBirthDate] = useState({ day: '', month: '', year: '', hour: '', minute: '' });
+            const [houseDirection, setHouseDirection] = useState('');
+
+            // New state for horoscope/daily/monthly/yearly fortune
+            const [horoscopeType, setHoroscopeType] = useState('daily'); // 'daily', 'monthly', or 'yearly'
+            const [horoscopeInfo, setHoroscopeInfo] = useState('');
+            const [isHoroscopeLoading, setIsHoroscopeLoading] = useState(false);
+            const [horoscopeError, setHoroscopeError] = useState('');
+
+            // Function to fetch horoscope
+            const fetchHoroscope = async (type) => {
+                setHoroscopeType(type); // Set the type (daily, monthly, yearly)
+
+                // Only day, month, year are required for horoscope
+                if (!birthDate.day || !birthDate.month || !birthDate.year) {
+                    setHoroscopeError('សូមបំពេញថ្ងៃ ខែ ឆ្នាំកំណើតរបស់អ្នក ដើម្បីមើលរាសី។');
+                    return;
+                }
+
+                setIsHoroscopeLoading(true);
+                setHoroscopeError('');
+                setHoroscopeInfo('');
+
+                try {
+                    let birthTimeInfo = '';
+                    // Only add hour and minute if both are provided
+                    if (birthDate.hour && birthDate.minute) {
+                        birthTimeInfo = ` ម៉ោង ${birthDate.hour} នាទី ${birthDate.minute}`;
+                    }
+
+                    let horoscopePrompt = `
+                    ដោយផ្អែកលើថ្ងៃខែឆ្នាំកំណើត ${birthDate.day} ខែ${birthDate.month} ឆ្នាំ${birthDate.year}${birthTimeInfo} របស់អ្នក:
+                    សូមផ្តល់ការទស្សន៍ទាយរាសីប្រចាំ${type === 'daily' ? 'ថ្ងៃ' : type === 'monthly' ? 'ខែ' : 'ឆ្នាំ'} ដោយផ្អែកលើគោលការណ៍ហុងស៊ុយ និងការបកស្រាយលក្ខណៈផ្ទាល់ខ្លួន។
+                    សូមផ្តោតលើទិដ្ឋភាពសំខាន់ៗដូចជា សុខភាព ទ្រព្យសម្បត្តិ ការងារ ទំនាក់ទំនង និងគន្លឹះដើម្បីបង្កើនសំណាង។
+                    សូមឆ្លើយជាភាសាខ្មែរ ដោយប្រើ Markdown formatting ដូចជា headings (**Bold**), bold text (**Text**), bullet points (* Item), និង line breaks ដើម្បីឱ្យអត្ថបទមានសណ្ដាប់ធ្នាប់ និងងាយស្រួលអានបំផុត។
+                    `;
+
+                    // For yearly horoscope, add context about current year
+                    if (type === 'yearly') {
+                        const currentYear = new Date().getFullYear();
+                        horoscopePrompt += ` (សម្រាប់ឆ្នាំ ${currentYear})`;
+                    }
+
+                    const payload = {
+                        contents: [{ role: "user", parts: [{ text: horoscopePrompt }] }],
+                    };
+
+                    const apiKey = ""; // <<< សូមបញ្ចូល API Key ពិតប្រាកដរបស់អ្នកនៅទីនេះ!!!
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error ? errorData.error.message : 'API call failed');
+                    }
+
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates?.[0].content?.parts?.length > 0) {
+                        const text = result.candidates?.[0].content.parts?.[0].text;
+                        const cleanedHtml = DOMPurify.sanitize(marked.parse(text));
+                        setHoroscopeInfo(cleanedHtml);
+                    } else {
+                        setHoroscopeError('មិនអាចទទួលបានព័ត៌មានរាសីទេ។ សូមព្យាយាមម្តងទៀត។');
+                    }
+                } catch (err) {
+                    console.error('Error fetching horoscope:', err);
+                    setHoroscopeError(`មានបញ្ហាក្នុងការទស្សន៍ទាយរាសី៖ ${err.message}`);
+                } finally {
+                    setIsHoroscopeLoading(false);
+                }
+            };
+
+            /**
+             * Handles multiple image file selection from the input.
+             * Converts selected files into URLs for preview.
+             * @param {Event} event - The change event from the file input.
+             */
+            const handleImageChange = (event) => {
+                setError('');
+                setImageInfo('');
+                const files = Array.from(event.target.files);
+                if (files.length > 0) {
+                    setSelectedFiles(files);
+                    const urls = files.map(file => URL.createObjectURL(file));
+                    setImageUrls(urls);
+                } else {
+                    setSelectedFiles([]);
+                    setImageUrls([]);
+                }
+            };
+
+            /**
+             * Converts a File object to a Base64 encoded string.
+             * @param {File} file - The image file to convert.
+             * @returns {Promise<string>} A promise that resolves with the Base64 string.
+             */
+            const getBase64 = (file) => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result.split(',')[1]);
+                    reader.onerror = (error) => reject(error);
+                });
+            };
+
+            /**
+             * Analyzes the selected images using the Gemini API to get Feng Shui information.
+             */
+            const analyzeImage = async () => {
+                if (selectedFiles.length === 0) {
+                    setError('សូមជ្រើសរើសរូបភាពជាមុនសិន។');
+                    return;
+                }
+
+                // Only houseDirection is required for image analysis
+                if (!houseDirection) {
+                    setError('សូមជ្រើសរើសទិសផ្ទះរបស់អ្នក។');
+                    return;
+                }
+
+                setIsLoading(true);
+                setError('');
+                setImageInfo('');
+
+                try {
+                    const imageParts = await Promise.all(selectedFiles.map(async (file) => ({
+                        inlineData: {
+                            mimeType: file.type,
+                            data: await getBase64(file)
+                        }
+                    })));
+
+                    let birthTimeInfo = '';
+                    if (birthDate.hour && birthDate.minute) {
+                        birthTimeInfo = ` ម៉ោង ${birthDate.hour} នាទី ${birthDate.minute}`;
+                    }
+
+                    const prompt = `
+                    ខ្ញុំបានបញ្ចូលរូបភាពនៃទីតាំងមួយ ឬច្រើន។
+                    ថ្ងៃខែឆ្នាំកំណើតរបស់ខ្ញុំគឺ៖ ${birthDate.day} ខែ${birthDate.month} ឆ្នាំ${birthDate.year}${birthTimeInfo}។
+                    ផ្ទះរបស់ខ្ញុំបែរមុខទៅទិស៖ ${houseDirection}។
+
+                    សូមវិភាគរូបភាពនេះ/ទាំងនេះទាក់ទងនឹងហុងស៊ុយ ដោយផ្អែកលើព័ត៌មានដែលបានផ្តល់ និងគោលការណ៍ហុងស៊ុយ៖
+
+                    **លទ្ធផលវិភាគហុងស៊ុយលម្អិត:**
+                    * **ការពិពណ៌នាទូទៅ និងធាតុ:**
+                        * តើធាតុអ្វីខ្លះដែលលេចធ្លោ (ឧទាហរណ៍ ធាតុឈើ ភ្លើង ដី លោហៈ ទឹក) នៅក្នុងរូបភាពនេះ/ទាំងនេះ?
+                        * តើមានលំហូរថាមពល (ឈី) នៅក្នុងរូបភាពនេះ/ទាំងនេះដែរឬទេ? តើរូបភាពនេះ/ទាំងនេះមានតុល្យភាពដែរឬទេ?
+                        * សូមភ្ជាប់ការវិភាគនេះទៅនឹងថ្ងៃខែឆ្នាំកំណើតរបស់ខ្ញុំ (ដើម្បីកំណត់ទិសលាភ ឬធាតុផ្ទាល់ខ្លួន) និងទិសផ្ទះ។
+
+                    * **នាគខៀវ ខ្លារសរ ហង្សក្រហម អណ្ដើកខ្មៅ (Four Celestial Animals):**
+                        * តើរូបភាពនេះបង្ហាញពីលក្ខណៈសម្បត្តិរបស់នាគខៀវ (Dragon), ខ្លារសរ (Tiger), ហង្សក្រហម (Phoenix) និងអណ្ដើកខ្មៅ (Tortoise) យ៉ាងដូចម្តេច?
+                        * តើមានតុល្យភាពរវាងសត្វទាំងបួននេះដែរឬទេ?
+
+                    * **យុគ្គហុងស៊ុយ (Flying Stars Feng Shui Period):**
+                        * ដោយផ្អែកលើថ្ងៃខែឆ្នាំកំណើតរបស់ខ្ញុំ (ដែលជាថ្ងៃចូលនៅ) និងទិសផ្ទះ តើផ្ទះនេះគួរស្ថិតនៅយុគ្គណា (Period) ក្នុងហុងស៊ុយផ្កាយហោះ?
+                        * តើថាមពលរបស់យុគ្គនោះមានលក្ខណៈវិជ្ជមាន ឬអវិជ្ជមានសម្រាប់ផ្ទះនេះ?
+
+                    * **ការវិភាគទីតាំងសំខាន់ៗ:**
+                        * **ទីតាំងទឹក/អាងត្រី:** តើទីតាំងទឹក ឬអាងត្រី (ប្រសិនបើមាន) នៅក្នុងរូបភាព ស្របតាមគោលការណ៍ហុងស៊ុយដែរឬទេ? តើវាល្អសម្រាប់ទ្រព្យសម្បត្តិដែរឬទេ?
+                        * **ទីតាំងចង្ក្រាន:** តើចង្ក្រាន (ប្រសិនបើមាន) ស្ថិតនៅទីតាំងត្រឹមត្រូវសម្រាប់សុខភាព និងភាពសុខដុមរមនាក្នុងគ្រួសារដែរឬទេ?
+                        * **បន្ទប់ដេក:** តើលក្ខណៈនៃបន្ទប់ដេក (ប្រសិនបើអាចមើលឃើញ) មានឥទ្ធិពលអ្វីខ្លះដល់ការសម្រាក និងសុខភាព?
+                        * **បន្ទប់ទទួលភ្ញៀវ:** តើបន្ទប់ទទួលភ្ញៀវ (ប្រសិនបើអាចមើលឃើញ) បង្ហាញពីថាមពលសម្រាប់ទំនាក់ទំនងសង្គម និងឱកាសយ៉ាងដូចម្តេច?
+                        * **ផ្សែង/ខ្យល់ចេញចូល:** តើការរៀបចំសម្រាប់ផ្សែង ឬប្រព័ន្ធខ្យល់ចេញចូល (ប្រសិនបើអាចមើលឃើញ) នៅក្នុងរូបភាព មានលក្ខណៈល្អសម្រាប់លំហូរឈីដែរឬទេ?
+
+                    * **លក្ខណៈនៃដើមឈើ:**
+                        * តើដើមឈើដែលមាននៅក្នុងរូបភាព មានឥទ្ធិពលបែបណា (វិជ្ជមាន/អវិជ្ជមាន) ទៅលើហុងស៊ុយ?
+                        * តើគួរដាំដើមឈើប្រភេទអ្វី (ឧទាហរណ៍ ដើមឈើហូបផ្លែ ដើមឈើមានផ្កា ដើមឈើធំ/តូច) នៅទីតាំងណា ដើម្បីបង្កើនហុងស៊ុយ? សូមបញ្ជាក់ពីលក្ខណៈសម្បត្តិរបស់ដើមឈើនីមួយៗ។
+
+                    * **ផលប៉ះពាល់វិជ្ជមាន និងអវិជ្ជមាន:**
+                        * តើទិដ្ឋភាពណាខ្លះនៅក្នុងរូបភាពនេះ/ទាំងនេះ ដែលអាចនាំមកនូវសំណាងល្អ ភាពសម្បូរបែប សុខភាពល្អ ឬភាពសុខដុមរមនា តាមគោលការណ៍ហុងស៊ុយ?
+                        * តើវាប៉ះពាល់ដល់ខ្ញុំផ្ទាល់ដោយរបៀបណា (ផ្អែកលើថ្ងៃខែឆ្នាំកំណើត និងទិសផ្ទះ)?
+                        * តើមានទិដ្ឋភាពណាខ្លះនៅក្នុងរូបភាពនេះ/ទាំងនេះ ដែលអាចនាំមកនូវថាមពលអវិជ្ជមាន បញ្ហា ឬភាពរាំងស្ទះ តាមគោលការណ៍ហុងស៊ុយ?
+                        * តើវាអាចប៉ះពាល់ដល់ខ្ញុំផ្ទាល់ដោយរបៀបណា (ផ្អែកលើថ្ងៃខែឆ្នាំកំណើត និងទិសផ្ទះ)?
+
+                    * **វិធីកែតម្រូវ/គន្លឹះកែលម្អ:**
+                        * តើទីកន្លែងជាក់លាក់ណាខ្លះនៅក្នុងរូបភាពដែលគួរកែប្រែ ឬបន្ថែម?
+                        * តើមានគន្លឹះកែតម្រូវ ឬការកែលម្អអ្វីខ្លះដែលអ្នកអាចណែនាំបានដោយផ្អែកលើគោលការណ៍ហុងស៊ុយ ដើម្បីបង្កើនថាមពលវិជ្ជមាន និងកាត់បន្ថយអវិជ្ជមាន សម្រាប់ខ្ញុំផ្ទាល់ និងទីតាំងនេះ?
+
+                    * **លេខសំខាន់សម្រាប់ថ្ងៃខែឆ្នាំកំណើត:**
+                        * តើលេខអ្វីខ្លះដែលសំខាន់ចេញពីថ្ងៃខែឆ្នាំកំណើតរបស់ខ្ញុំ ដែលអាចប្រើសម្រាប់ការសាងសង់ (ដូចជាលេខជាន់, ទំហំ, ចំនួនបន្ទប់) និងសម្រាប់ថ្ងៃចូលស្នាក់នៅ (ថ្ងៃល្អ, ម៉ោងល្អ) តាមហុងស៊ុយ?
+
+                    សូមឆ្លើយជាភាសាខ្មែរ ហើយប្រើ Markdown formatting ដូចជា headings (**Bold**), bold text (**Text**), bullet points (* Item), និង line breaks ដើម្បីឱ្យអត្ថបទមានសណ្ដាប់ធ្នាប់ និងងាយស្រួលអានបំផុត។
+                    `;
+
+                    const contents = [{
+                        role: "user",
+                        parts: [{ text: prompt }, ...imageParts]
+                    }];
+
+                    const payload = { contents };
+
+                    const apiKey = ""; // <<< សូមបញ្ចូល API Key ពិតប្រាកដរបស់អ្នកនៅទីនេះ!!!
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error ? errorData.error.message : 'API call failed');
+                    }
+
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates?.[0].content?.parts?.length > 0) {
+                        const text = result.candidates?.[0].content.parts?.[0].text;
+                        const cleanedHtml = DOMPurify.sanitize(marked.parse(text));
+                        setImageInfo(cleanedHtml);
+                    } else {
+                        setError('មិនអាចទទួលបានព័ត៌មានរាសីទេ។ សូមព្យាយាមម្តងទៀត។');
+                    }
+                } catch (err) {
+                    console.error('Error analyzing images for Feng Shui:', err);
+                    setError(`មានបញ្ហាក្នុងការវិភាគហុងស៊ុយរូបភាព៖ ${err.message}`);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-orange-100 via-orange-200 to-orange-300 flex items-center justify-center p-4"> {/* Background Orange Gradient */}
+                    <div className="bg-white bg-opacity-90 shadow-2xl rounded-3xl p-6 md:p-8 w-full max-w-3xl border border-gray-100 backdrop-filter backdrop-blur-sm">
+                        {/* Logo Section */}
+                        <div className="flex justify-center mb-8">
+                            <img
+                                src="https://drive.google.com/file/d/1g2e4oMmvovPAsv46pDJ7FtqqIXXb46X_/view?usp=sharing" // Updated image link [Image of Logo]
+                                alt="Company Logo"
+                                className="h-24 w-auto"
+                                onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/96x96/8B5CF6/FFFFFF?text=Logo+Error"; }} /* Fallback for image load error */
+                            />
+                            {/* ចំណាំ៖ Link ពី Google Drive នេះអាចនឹងមិនបង្ហាញដោយផ្ទាល់ទេ។ សូមប្រាកដថា រូបភាពត្រូវបានកំណត់ជាសាធារណៈ (public) ឬប្រើ Link រូបភាពផ្ទាល់ (direct image link) */}
+                        </div>
+                        <h1 className="text-4xl md:text-5xl font-extrabold text-center text-purple-800 mb-8 drop-shadow-md">
+                            <i className="fas fa-yin-yang mr-3"></i>កម្មវិធីវិភាគ ហុងស៊ុយ វិទ្យាសាស្រ្ត ដោយ AI
+                        </h1>
+
+                        {/* Main Content Box (Image Analysis) */}
+                        <div className="bg-gradient-to-br from-purple-50 to-indigo-100 p-6 rounded-2xl shadow-inner border border-purple-200 mb-6">
+                            <h2 className="2xl md:text-3xl font-bold text-indigo-800 mb-4 flex items-center justify-center">
+                                <i className="fas fa-camera-retro mr-3"></i>វិភាគហុងស៊ុយតាមរូបភាព ដោយកម្មវិធីកំរិតខ្ពស AI
+                            </h2>
+
+                            <div className="mb-6">
+                                <label htmlFor="image-upload" className="block text-purple-800 text-lg font-semibold mb-2">
+                                    ជ្រើសរើសរូបភាពផ្ទះ ឬទីតាំង (អាចច្រើនរូបភាព)
+                                </label>
+                                <input
+                                    id="image-upload"
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleImageChange}
+                                    className="block w-full text-sm text-gray-900 border border-purple-300 rounded-lg cursor-pointer bg-purple-50 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-purple-200 file:text-purple-700 hover:file:bg-purple-300 transition duration-200"
+                                />
+                            </div>
+
+                            {/* Image Previews */}
+                            {imageUrls.length > 0 && (
+                                <div className="mb-6 p-4 border border-purple-300 rounded-lg bg-white flex flex-col items-center shadow-md">
+                                    <h2 className="text-xl font-semibold text-purple-800 mb-4">រូបភាពដែលបានជ្រើសរើស:</h2>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4 w-full justify-center">
+                                        {imageUrls.map((url, index) => (
+                                            <div key={index} className="relative w-full h-24 sm:h-32 md:h-40 rounded-lg overflow-hidden shadow-md border border-gray-200">
+                                                <img
+                                                    src={url}
+                                                    alt={`Selected for analysis ${index + 1}`}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/200x150/e0e0e0/555555?text=Image+Error"; }}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Input Fields for House Direction (specific to image analysis) */}
+                            <div className="mb-6 p-4 border border-purple-300 rounded-lg bg-white shadow-md">
+                                <h2 className="text-xl font-semibold text-purple-800 mb-4">ព័ត៌មានផ្ទះ (សម្រាប់វិភាគរូបភាព):</h2>
+                                <div>
+                                    <label htmlFor="house-direction" className="block text-gray-700 text-sm font-medium mb-1">
+                                        ផ្ទះបែរមុខទៅទិស:
+                                    </label>
+                                    <select
+                                        id="house-direction"
+                                        value={houseDirection}
+                                        onChange={(e) => setHouseDirection(e.target.value)}
+                                        className="w-full p-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200"
+                                    >
+                                        <option value="">-- សូមជ្រើសរើស --</option>
+                                        <option value="ខាងជើង">ខាងជើង (North)</option>
+                                        <option value="ខាងជើងឈៀងខាងកើត">ខាងជើងឈៀងខាងកើត (Northeast)</option>
+                                        <option value="ខាងកើត">ខាងកើត (East)</option>
+                                        <option value="ខាងត្បូងឈៀងខាងកើត">ខាងត្បូងឈៀងខាងកើត (Southeast)</option>
+                                        <option value="ខាងត្បូង">ខាងត្បូង (South)</option>
+                                        <option value="ខាងត្បូងឈៀងខាងលិច">ខាងត្បូងឈៀងខាងលិច (Southwest)</option>
+                                        <option value="ខាងលិច">ខាងលិច (West)</option>
+                                        <option value="ខាងជើងឈៀងខាងលិច">ខាងជើងឈៀងខាងលិច (Northwest)</option>
+                                    </select>
+                                    <p className="text-gray-600 text-xs mt-1 italic">
+                                        (ទិសផ្ទះគឺសំដៅលើទិសដែលទ្វារធំរបស់ផ្ទះបែរមុខទៅ)
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Analyze Image Button */}
+                            <div className="flex justify-center">
+                                <button
+                                    onClick={analyzeImage}
+                                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-lg"
+                                    disabled={isLoading || selectedFiles.length === 0 || !houseDirection}
+                                >
+                                    {isLoading ? (
+                                        <>
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            កំពុងវិភាគហុងស៊ុយរូបភាព...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="fas fa-search-dollar mr-2"></i>វិភាគហុងស៊ុយរូបភាព
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+
+                        </div> {/* End Main Content Box */}
+
+
+                        {error && (
+                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6 shadow-md" role="alert">
+                                <strong className="font-bold">មានបញ្ហា!</strong>
+                                <span className="block sm:inline ml-2">{error}</span>
+                            </div>
+                        )}
+
+                        {imageInfo && (
+                            <div className="bg-white p-6 rounded-2xl shadow-xl border border-indigo-200 mt-6">
+                                <h2 className="text-2xl md:text-3xl font-bold text-indigo-800 mb-4 flex items-center">
+                                    <i className="fas fa-chart-line mr-3"></i>លទ្ធផលវិភាគហុងស៊ុយរូបភាព
+                                </h2>
+                                <div
+                                    className="text-gray-700 leading-relaxed text-base md:text-lg prose max-w-none"
+                                    dangerouslySetInnerHTML={{ __html: imageInfo }}
+                                />
+                            </div>
+                        )}
+
+                        {/* ផ្នែកមើលរាសីប្រចាំថ្ងៃ/ខែ/ឆ្នាំ */}
+                        <div className="mt-8 p-6 bg-gradient-to-br from-green-100 to-teal-200 rounded-2xl shadow-xl border border-green-300 text-center">
+                            <h2 className="text-2xl md:text-3xl font-bold text-green-800 mb-4 flex items-center justify-center">
+                                <i className="fas fa-calendar-alt mr-3 text-green-600"></i>មើលរាសីប្រចាំថ្ងៃ / ខែ / ឆ្នាំ
+                            </h2>
+                            {/* Input Fields for Birth Date (Day, Month, Year, Hour, Minute) */}
+                            <div className="mb-4 grid grid-cols-3 gap-4">
+                                <div>
+                                    <label htmlFor="horoscope-day" className="block text-gray-700 text-sm font-medium mb-1">ថ្ងៃ:</label>
+                                    <input
+                                        id="horoscope-day"
+                                        type="number"
+                                        min="1"
+                                        max="31"
+                                        placeholder="ថ្ងៃ"
+                                        value={birthDate.day}
+                                        onChange={(e) => setBirthDate({ ...birthDate, day: e.target.value })}
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="horoscope-month" className="block text-gray-700 text-sm font-medium mb-1">ខែ:</label>
+                                    <input
+                                        id="horoscope-month"
+                                        type="number"
+                                        min="1"
+                                        max="12"
+                                        placeholder="ខែ"
+                                        value={birthDate.month}
+                                        onChange={(e) => setBirthDate({ ...birthDate, month: e.target.value })}
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="horoscope-year" className="block text-gray-700 text-sm font-medium mb-1">ឆ្នាំ:</label>
+                                    <input
+                                        id="horoscope-year"
+                                        type="number"
+                                        min="1900"
+                                        max={new Date().getFullYear()}
+                                        placeholder="ឆ្នាំ"
+                                        value={birthDate.year}
+                                        onChange={(e) => setBirthDate({ ...birthDate, year: e.target.value })}
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
+                                    />
+                                </div>
+                            </div>
+                            <div className="mb-4 grid grid-cols-2 gap-4"> {/* New row for Hour and Minute */}
+                                <div>
+                                    <label htmlFor="horoscope-hour" className="block text-gray-700 text-sm font-medium mb-1">ម៉ោង (បំពេញបើសិនជាមាន):</label>
+                                    <input
+                                        id="horoscope-hour"
+                                        type="number"
+                                        min="0"
+                                        max="23"
+                                        placeholder="ម៉ោង (0-23)"
+                                        value={birthDate.hour}
+                                        onChange={(e) => setBirthDate({ ...birthDate, hour: e.target.value })}
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="horoscope-minute" className="block text-gray-700 text-sm font-medium mb-1">នាទី (បំពេញបើសិនជាមាន):</label>
+                                    <input
+                                        id="horoscope-minute"
+                                        type="number"
+                                        min="0"
+                                        max="59"
+                                        placeholder="នាទី (0-59)"
+                                        value={birthDate.minute}
+                                        onChange={(e) => setBirthDate({ ...birthDate, minute: e.target.value })}
+                                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-200"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex justify-center space-x-4 mb-4">
+                                <button
+                                    onClick={() => fetchHoroscope('daily')}
+                                    className={`py-2 px-6 rounded-full font-semibold transition duration-200 ${horoscopeType === 'daily' ? 'bg-green-600 text-white shadow-md' : 'bg-green-200 text-green-800 hover:bg-green-300'}`}
+                                    disabled={isHoroscopeLoading || !birthDate.day || !birthDate.month || !birthDate.year}
+                                >
+                                    រាសីប្រចាំថ្ងៃ
+                                </button>
+                                <button
+                                    onClick={() => fetchHoroscope('monthly')}
+                                    className={`py-2 px-6 rounded-full font-semibold transition duration-200 ${horoscopeType === 'monthly' ? 'bg-green-600 text-white shadow-md' : 'bg-green-200 text-green-800 hover:bg-green-300'}`}
+                                    disabled={isHoroscopeLoading || !birthDate.day || !birthDate.month || !birthDate.year}
+                                >
+                                    រាសីប្រចាំខែ
+                                </button>
+                                <button
+                                    onClick={() => fetchHoroscope('yearly')}
+                                    className={`py-2 px-6 rounded-full font-semibold transition duration-200 ${horoscopeType === 'yearly' ? 'bg-green-600 text-white shadow-md' : 'bg-green-200 text-green-800 hover:bg-green-300'}`}
+                                    disabled={isHoroscopeLoading || !birthDate.day || !birthDate.month || !birthDate.year}
+                                >
+                                    រាសីប្រចាំឆ្នាំ
+                                </button>
+                            </div>
+
+                            {isHoroscopeLoading ? (
+                                <div className="flex items-center justify-center text-green-700">
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-green-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    កំពុងទស្សន៍ទាយរាសី...
+                                </div>
+                            ) : horoscopeError ? (
+                                <p className="text-red-600 font-medium">{horoscopeError}</p>
+                            ) : horoscopeInfo ? (
+                                <div
+                                    className="text-gray-700 leading-relaxed text-base md:text-lg prose max-w-none text-left mx-auto"
+                                    dangerouslySetInnerHTML={{ __html: horoscopeInfo }}
+                                />
+                            ) : (
+                                <p className="text-gray-600 italic">
+                                    សូមបញ្ចូលថ្ងៃ ខែ ឆ្នាំកំណើតរបស់អ្នក រួចចុច "រាសីប្រចាំថ្ងៃ" "រាសីប្រចាំខែ" ឬ "រាសីប្រចាំឆ្នាំ" ដើម្បីមើលការទស្សន៍ទាយ។
+                                </p>
+                            )}
+                        </div>
+                        {/* Contact and Creator Information Section */}
+                        <div className="mt-8 p-6 bg-gradient-to-br from-blue-50 to-purple-100 rounded-2xl shadow-xl border border-blue-200 text-center">
+                            <h2 className="text-2xl md:text-3xl font-bold text-blue-800 mb-4 flex items-center justify-center">
+                                <i className="fas fa-headset mr-3 text-blue-600"></i>ទំនាក់ទំនងប្រឹក្សា ហុងស៊ុយ វិទ្យាសាស្រ្ត
+                            </h2>
+                            <p className="text-gray-700 leading-relaxed mb-2">
+                                សម្រាប់ការប្រឹក្សាយោបល់ហុងស៊ុយផ្ទាល់ខ្លួន និងស៊ីជម្រៅ សូមទំនាក់ទំនង៖
+                            </p>
+                            <p className="text-indigo-700 font-semibold mb-4">
+                                <i className="fas fa-phone-alt mr-2"></i>លេខទូរស័ព្ទ និង តេលេក្រាម: +855 12 233 779
+                                <br />
+                                <i className="fas fa-phone-alt mr-2"></i>លេខទូរស័ព្ទ: +855 93 663 662
+                                <br />
+                                <i className="fas fa-envelope mr-2"></i>Facebook: Reahou Meng
+                            </p>
+                            <div className="border-t border-blue-300 pt-4 mt-4">
+                                <p className="text-gray-700 leading-relaxed mb-1">
+                                    កម្មវិធីនេះត្រូវបានបង្កើតឡើងដោយអ្នកជំនាញ ហុង ស៊ុយ វិទ្យាសាស្រ្ត និង កម្មវិធីជំនាន់ចុងក្រោយ AI៖
+                                </p>
+                                <p className="text-purple-700 font-bold">
+                                    <i className="fas fa-code mr-2"></i>ក្រុមអ្នកអភិវឌ្ឍន៍ហុងស៊ុយវិទ្យាសាស្រ្ត AI
+                                </p>
+                                <p className="text-gray-600 text-sm italic mt-1">
+                                    <i className="fas fa-globe mr-2"></i>ចូលរួម ក្រុមតេលេក្រាម: [https://t.me/Cambodia_Fengshui](https://t.me/Cambodia_Fengshui) (Group Telegram)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Render the App component into the root div
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
